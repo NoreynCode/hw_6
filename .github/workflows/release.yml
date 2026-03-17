@@ -1,0 +1,79 @@
+name: 'C++ CI'
+
+on:
+  push:
+    branches:
+      - master
+      - feature/github_actions
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install libboost-test-dev -y
+      
+      - name: Configure CMake
+        run: cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON
+      
+      - name: Build
+        run: cmake --build . --parallel
+      
+      - name: Run tests
+        run: cmake --build . --target test
+        id: tests
+        continue-on-error: true
+      
+      - name: Check tests status
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
+
+  build-and-release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install libboost-test-dev -y
+      
+      - name: Configure CMake
+        run: cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON
+      
+      - name: Build
+        run: cmake --build . --parallel
+      
+      - name: Package
+        run: cmake --build . --target package
+      
+      - name: Create Release
+        if: github.repository == 'NoreynCode/hw_6'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          draft: false
+          prerelease: false
+      
+      - name: Upload Release Asset
+        if: github.repository == 'NoreynCode/hw_6'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Matrix-0.0.${{ github.run_number }}-Linux.deb
+          asset_name: Matrix-0.0.${{ github.run_number }}-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package

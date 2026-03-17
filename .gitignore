@@ -1,0 +1,11 @@
+/.vs
+/Matrix
+/x64
+/tests/Tests
+
+Matrix*.*
+*.txt
+
+!*.hpp
+!*.cpp
+!*.CMakeLists.txt
