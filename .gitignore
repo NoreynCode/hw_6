@@ -8,4 +8,4 @@ Matrix*.*
 
 !*.hpp
 !*.cpp
-!*.CMakeLists.txt
+!CMakeLists.txt
